@@ -14,6 +14,6 @@ router.use(authMiddleware);
  *   "question": "Liệt kê danh sách khách hàng"
  * }
  */
-router.post('/', QueryController.ask);
+router.post('/', QueryController.query);
 
 export default router;

@@ -1,10 +1,10 @@
-import DBConnectionService from '../services/dbConnection.service.js';
+import DBService from '../services/db.service.js';
 import successResponse from '../utils/response.js';
 
-const DBConnectionController = {
+const DBController = {
     getAll: async (req, res, next) => {
         try {
-            const rows = await DBConnectionService.findAll();
+            const rows = await DBService.findAll();
             successResponse(res, rows);
         } catch (err) {
             next(err);
@@ -13,7 +13,7 @@ const DBConnectionController = {
 
     getById: async (req, res, next) => {
         try {
-            const row = await DBConnectionService.findById(req.params.id);
+            const row = await DBService.findById(req.params.id);
             successResponse(res, row);
         } catch (err) {
             next(err);
@@ -22,7 +22,7 @@ const DBConnectionController = {
 
     create: async (req, res, next) => {
         try {
-            const row = await DBConnectionService.create(req.body);
+            const row = await DBService.create(req.body);
             successResponse(res, row, 201);
         } catch (err) {
             next(err);
@@ -31,7 +31,7 @@ const DBConnectionController = {
 
     update: async (req, res, next) => {
         try {
-            const row = await DBConnectionService.update(req.params.id, req.body);
+            const row = await DBService.update(req.params.id, req.body);
             successResponse(res, row);
         } catch (err) {
             next(err);
@@ -40,7 +40,7 @@ const DBConnectionController = {
 
     delete: async (req, res, next) => {
         try {
-            await DBConnectionService.delete(req.params.id);
+            await DBService.delete(req.params.id);
             successResponse(res, null, 204);
         } catch (err) {
             next(err);
@@ -51,7 +51,7 @@ const DBConnectionController = {
     testConnection: async (req, res, next) => {
         try {
             const userId = req.user.id; // từ authMiddleware
-            await DBConnectionService.testConnection(userId);
+            await DBService.testConnection(userId);
 
             successResponse(res, {
                 connected: true,
@@ -65,7 +65,7 @@ const DBConnectionController = {
     getSchema: async (req, res, next) => {
         try {
             const userId = req.user.id;
-            const schema = await DBConnectionService.getSchema(userId);
+            const schema = await DBService.getSchema(userId);
             successResponse(res, schema);
         } catch (err) {
             next(err);
@@ -73,4 +73,4 @@ const DBConnectionController = {
     }
 };
 
-export default DBConnectionController;
+export default DBController;

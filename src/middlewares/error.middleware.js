@@ -4,6 +4,6 @@ export default (err, req, res, next) => {
 
     res.status(statusCode).json({
         success: false,
-        message: err.message || 'Internal Server Error'
+        message: err.message || 'Lỗi Server'
     });
 };

@@ -13,7 +13,7 @@ const ALLOWED_FIELDS = [
     'schema_version'
 ];
 
-const DBConnectionService = {
+const DBService = {
     findAll: async () => {
         const [rows] = await pool.query(
             'SELECT id, user_id, db_host, db_port, db_name, db_user, schema_version, created_at, updated_at FROM user_databases'
@@ -202,21 +202,7 @@ const DBConnectionService = {
             // 3. Lấy schema
             const [rows] = await connection.query(
                 `
-       SELECT 
-    c.TABLE_NAME, 
-    c.COLUMN_NAME, 
-    c.COLUMN_TYPE, 
-    c.COLUMN_KEY, 
-    c.COLUMN_COMMENT,
-    k.REFERENCED_TABLE_NAME, 
-    k.REFERENCED_COLUMN_NAME
-FROM information_schema.COLUMNS c
-LEFT JOIN information_schema.KEY_COLUMN_USAGE k 
-    ON c.TABLE_SCHEMA = k.TABLE_SCHEMA 
-    AND c.TABLE_NAME = k.TABLE_NAME 
-    AND c.COLUMN_NAME = k.COLUMN_NAME
-WHERE c.TABLE_SCHEMA = '${dbInfo.db_name}'
-ORDER BY c.TABLE_NAME, c.ORDINAL_POSITION;
+       đ
         `,
                 [dbInfo.db_name]
             );
@@ -230,4 +216,4 @@ ORDER BY c.TABLE_NAME, c.ORDINAL_POSITION;
     }
 };
 
-export default DBConnectionService;
+export default DBService;

@@ -2,7 +2,7 @@ import QueryService from '../services/query.service.js';
 import successResponse from '../utils/response.js';
 
 const QueryController = {
-    ask: async (req, res, next) => {
+    query: async (req, res, next) => {
         try {
             const userId = req.user.id; // lấy từ JWT
             const { question } = req.body;
