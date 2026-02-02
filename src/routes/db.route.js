@@ -12,9 +12,9 @@ router.get('/:id', DBController.getById);
 router.post('/', DBController.create);
 router.put('/:id', DBController.update);
 router.delete('/:id', DBController.delete);
-
-// 🔥 test connection
 router.post('/test-connection', DBController.testConnection);
 router.post('/get-schema', DBController.getSchema);
+router.patch('/:id/active', DBController.active);
+// router.put('/update-schema', DBController.updateSchema);
 
 export default router;

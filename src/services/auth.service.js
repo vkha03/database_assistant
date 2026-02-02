@@ -1,11 +1,12 @@
-import pool from '../db/index.js';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
+import AuthModel from '../models/auth.model.js';
+import UserModel from '../models/user.model.js';
 
 const AuthService = {
   login: async (email, password) => {
-    const [rows] = await pool.query('SELECT * FROM users WHERE email = ?', [email]);
-    const user = rows[0];
+    const result = await AuthModel.login(email);
+    const user = result[0];
 
     if (!user) {
       throw Object.assign(
@@ -30,6 +31,33 @@ const AuthService = {
       token,
       id: user.id,
       email: user.email
+    };
+  },
+
+  register: async (email, password) => {
+    if (!email || !password) {
+      throw Object.assign(
+        new Error('Thiếu dữ liệu bắt buộc'),
+        { statusCode: 400 }
+      );
+    }
+
+    const existEmail = await UserModel.findByEmail(email);
+
+    if (existEmail.length > 0) {
+      throw Object.assign(
+        new Error('Email đã tồn tại'),
+        { statusCode: 409 }
+      )
+    };
+
+    const passwordHash = await bcrypt.hash(password, 10);
+
+    const result = await UserModel.create(email, passwordHash);
+
+    return {
+      id: result.insertId,
+      email
     };
   }
 };

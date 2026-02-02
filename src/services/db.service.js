@@ -1,8 +1,8 @@
 // services/dbConnection.service.js
 import pool from '../db/index.js';
 import Crypto from '../utils/crypto.js';
-import mysql from 'mysql2';
 import normallizeSchema from '../utils/normallizeSchema.js';
+import DBModel from '../models/db.model.js';
 
 const ALLOWED_FIELDS = [
     'db_host',
@@ -15,26 +15,34 @@ const ALLOWED_FIELDS = [
 
 const DBService = {
     findAll: async () => {
-        const [rows] = await pool.query(
-            'SELECT id, user_id, db_host, db_port, db_name, db_user, schema_version, created_at, updated_at FROM user_databases'
-        );
-        return rows;
+        const data = await DBModel.findAll();
+        return data;
     },
 
-    findById: async (userId) => {
-        const [rows] = await pool.query(
-            'SELECT * FROM user_databases WHERE user_id = ?',
-            [userId]
-        );
+    findById: async (id) => {
+        const data = await DBModel.findById(id);
 
-        if (!rows[0]) {
+        if (!data) {
             throw Object.assign(
                 new Error('Không tìm thấy kết nối DB'),
                 { statusCode: 404 }
             );
         }
 
-        return rows[0];
+        return data;
+    },
+
+    findByActive: async (userId) => {
+        const data = await DBModel.findByActive(userId);
+
+        if (!data) {
+            throw Object.assign(
+                new Error('Không tìm thấy kết nối DB'),
+                { statusCode: 404 }
+            );
+        }
+
+        return data;
     },
 
     create: async (data) => {
@@ -48,6 +56,8 @@ const DBService = {
             schema_version
         } = data;
 
+        await DBModel.create(user_id, db_host, db_port, db_name, db_user, encryptedPassword, schema_version);
+
         if (!user_id || !db_host || !db_port || !db_name || !db_user || !db_password) {
             throw Object.assign(
                 new Error('Thiếu dữ liệu bắt buộc'),
@@ -56,21 +66,6 @@ const DBService = {
         }
 
         const encryptedPassword = Crypto.encryptPassword(db_password);
-
-        const [result] = await pool.query(
-            `INSERT INTO user_databases
-       (user_id, db_host, db_port, db_name, db_user, db_password_encrypted, schema_version)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-            [
-                user_id,
-                db_host,
-                db_port,
-                db_name,
-                db_user,
-                encryptedPassword,
-                schema_version || null
-            ]
-        );
 
         return {
             id: result.insertId,
@@ -83,8 +78,8 @@ const DBService = {
         };
     },
 
-    update: async (userId, updates) => {
-        if (!userId) {
+    update: async (id, updates) => {
+        if (!id) {
             throw Object.assign(new Error('ID không hợp lệ'), { statusCode: 400 });
         }
 
@@ -112,12 +107,9 @@ const DBService = {
             .map(k => `${k} = ?`)
             .join(', ');
 
-        const values = [...Object.values(filtered), userId];
+        const values = [...Object.values(filtered), id];
 
-        const [result] = await pool.query(
-            `UPDATE user_databases SET ${fields} WHERE user_id = ?`,
-            values
-        );
+        const result = await DBModel.update(fields, values);
 
         if (result.affectedRows === 0) {
             throw Object.assign(
@@ -130,10 +122,7 @@ const DBService = {
     },
 
     delete: async (id) => {
-        const [result] = await pool.query(
-            'DELETE FROM user_databases WHERE id = ?',
-            [id]
-        );
+        const result = await DBModel.delete(id);
 
         if (result.affectedRows === 0) {
             throw Object.assign(
@@ -146,7 +135,7 @@ const DBService = {
     },
 
     testConnection: async (userId) => {
-        const dbInfo = await DBConnectionService.findById(userId);
+        const dbInfo = await DBConnectionService.findByActive(userId);
 
         const password = dbInfo.db_password_encrypted ? Crypto.decryptPassword(dbInfo.db_password_encrypted) : '';
 
@@ -161,15 +150,9 @@ const DBService = {
             }).promise();
 
         try {
-            await connection.query('SELECT 1');
-
+            await connection.execute('SELECT 1');
             const schema = await DBConnectionService.getSchema(userId);
-            await pool.query(
-                `UPDATE user_databases
-                SET schema_json = ?
-                WHERE user_id = ?`,
-                [JSON.stringify(schema), userId]
-            );
+            await DBModel.updateSchema(schema, userId);
 
             return true;
         } catch (err) {
@@ -184,7 +167,7 @@ const DBService = {
 
     getSchema: async (userId) => {
         // 1. Lấy config DB của user
-        const dbInfo = await DBConnectionService.findById(userId);
+        const dbInfo = await DBConnectionService.findByActive(userId);
 
         const password = dbInfo.db_password_encrypted ? Crypto.decryptPassword(dbInfo.db_password_encrypted) : '';
 
@@ -200,19 +183,28 @@ const DBService = {
 
         try {
             // 3. Lấy schema
-            const [rows] = await connection.query(
-                `
-       đ
-        `,
-                [dbInfo.db_name]
-            );
+            const result = await DBModel.getSchema(dbInfo.db_name)
 
-            const schema = normallizeSchema(rows);
+            const schema = normallizeSchema(result);
 
             return schema;
         } finally {
             await connection.end();
         }
+    },
+
+    active: async (userId, id) => {
+        await DBModel.unActive(userId);
+
+        const active = await DBModel.active(userId, id);
+        if (active.affectedRows === 0) {
+            throw Object.assign(
+                new Error('Không tìm thấy kết nối DB'),
+                { statusCode: 404 }
+            );
+        }
+
+        return true;
     }
 };
 

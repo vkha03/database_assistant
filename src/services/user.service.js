@@ -1,10 +1,10 @@
-import pool from '../db/index.js';
 import bcrypt from 'bcrypt';
+import UserModel from '../models/user.model.js';
 
 const UserService = {
   findAll: async () => {
-    const [rows] = await pool.query('SELECT * FROM users');
-    return rows;
+    const data = await UserModel.findAll();
+    return data;
   },
 
   findById: async (id) => {
@@ -12,19 +12,16 @@ const UserService = {
       throw Object.assign(new Error('ID không hợp lệ'), { statusCode: 400 });
     }
 
-    const [rows] = await pool.query(
-      'SELECT * FROM users WHERE id = ? LIMIT 1',
-      [id]
-    );
+    const data = await UserModel.findById(id);
 
-    if (!rows.length) {
+    if (!data.length) {
       throw Object.assign(
         new Error('Không tìm thấy người dùng'),
         { statusCode: 404 }
       );
     }
 
-    return rows[0];
+    return data[0];
   },
 
   create: async (userData) => {
@@ -37,8 +34,9 @@ const UserService = {
       );
     }
 
-    const [rows] = await pool.query('SELECT email FROM users WHERE email = ?', [email]);
-    if (rows.length > 0) {
+    const existEmail = await UserModel.findByEmail(email);
+
+    if (existEmail.length > 0) {
       throw Object.assign(
         new Error('Email đã tồn tại'),
         { statusCode: 409 }
@@ -47,17 +45,12 @@ const UserService = {
 
     const passwordHash = await bcrypt.hash(password, 10);
 
-    const [result] = await pool.query(
-      'INSERT INTO users (email, password_hash) VALUES (?, ?)',
-      [email, passwordHash]
-    );
+    const result = await UserModel.create(email, passwordHash);
 
     return {
       id: result.insertId,
       email
     };
-
-
   },
 
   update: async (id, updates) => {
@@ -93,10 +86,7 @@ const UserService = {
 
     const values = [...Object.values(filteredUpdates), id];
 
-    const [result] = await pool.query(
-      `UPDATE users SET ${fields} WHERE id = ?`,
-      values
-    );
+    const result = await UserModel.update(fields, values);
 
     if (result.affectedRows === 0) {
       throw Object.assign(
@@ -113,10 +103,7 @@ const UserService = {
       throw Object.assign(new Error('ID không hợp lệ'), { statusCode: 400 });
     }
 
-    const [result] = await pool.query(
-      'DELETE FROM users WHERE id = ?',
-      [id]
-    );
+    const result = await UserModel.delete(id);
 
     if (result.affectedRows === 0) {
       throw Object.assign(
@@ -136,10 +123,7 @@ const UserService = {
       );
     }
 
-    const [rows] = await pool.query(
-      'SELECT * FROM users WHERE email = ? LIMIT 1',
-      [email]
-    );
+    const rows = await UserModel.findByEmail(email);
 
     return rows[0] || null;
   }
