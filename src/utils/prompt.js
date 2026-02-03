@@ -1,5 +1,5 @@
 export default (schema, question) => {
-    return `
+  return `
 Bạn là một AI SQL Generator chuyên nghiệp.
 Nhiệm vụ: Chuyển đổi câu hỏi tự nhiên thành câu lệnh SQL (MySQL) dựa trên Schema.
 
@@ -29,4 +29,4 @@ QUY TẮC TUYỆT ĐỐI (VI PHẠM SẼ BỊ LỖI HỆ THỐNG):
 
 HÃY VIẾT SQL NGAY LẬP TỨC, KHÔNG CẦN SUY NGHĨ RA LỜI:
 `;
-}
+};
