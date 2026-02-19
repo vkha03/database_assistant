@@ -12,17 +12,22 @@ const QueryService = {
    * @param {number} userId - ID của người dùng đang đặt câu hỏi.
    * @param {string} question - Câu hỏi bằng ngôn ngữ tự nhiên (VD: "Top 5 doanh thu tháng 1").
    */
-  query: async (userId, question) => {
+  query: async (userId, question, errMessage = "", retryCount = 0) => {
     let SQL; // Biến tạm lưu câu SQL để phục vụ mục đích log lỗi nếu có.
+    const MAX_RETRIES = 1;
 
     try {
       // 1. LẤY THÔNG TIN DATABASE & PROMPT ENGINEERING
       // Truy vấn thông tin cấu hình và cấu trúc Database (Schema) của người dùng từ hệ thống.
-      const dbInfo = await DBService.findById(userId);
+      const dbInfo = await DBService.findByActive(userId);
 
       // 2. NHỜ AI VIẾT SQL (AI ORCHESTRATION)
       // Gửi câu hỏi và "bản vẽ" Database sang AI Service để nhận về câu lệnh SQL chuẩn.
-      const generatedSQL = await AIHandle(question, dbInfo.schema_json);
+      const generatedSQL = await AIHandle(
+        question,
+        dbInfo.schema_json,
+        errMessage,
+      );
 
       // 3. GIẢI MÃ THÔNG TIN KẾT NỐI (SECURITY DECRYPTION)
       // Lấy mật khẩu đã mã hóa từ DB hệ thống và giải mã để có thể đăng nhập vào DB khách hàng.
@@ -56,7 +61,22 @@ const QueryService = {
       // ==========================================================================
       // XỬ LÝ NGOẠI LỆ (ERROR HANDLING)
       // ==========================================================================
-      console.error("QueryService Error:", error);
+      console.error("CONSOLE.LOG ERROR:", error);
+
+      const isSqlError =
+        error.code === "ER_PARSE_ERROR" ||
+        error.code === "ER_SYNTAX_ERROR" ||
+        error.code === "ER_NO_SUCH_TABLE" ||
+        error.code === "ER_BAD_FIELD_ERROR";
+
+      if (retryCount < MAX_RETRIES && isSqlError) {
+        return await QueryService.query(
+          userId,
+          question,
+          errMessage,
+          retryCount + 1,
+        );
+      }
 
       // Ném lỗi kèm theo câu SQL bị sai để Developer có thể debug hoặc hiển thị cho User.
       // Dùng Object.assign để "đính kèm" thêm thông tin SQL vào đối tượng Error chuẩn.

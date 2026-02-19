@@ -2,7 +2,7 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import promptAI from "../utils/prompt.js";
 
-const AIHandle = async (question, schema) => {
+const AIHandle = async (question, schema, errMessage) => {
   // 1. Khởi tạo kết nối với Google Generative AI bằng API Key từ file .env.
   const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
@@ -13,7 +13,7 @@ const AIHandle = async (question, schema) => {
 
   // 3. Chuẩn bị Prompt (Lời dẫn):
   // Kết hợp câu hỏi của User và cấu trúc Database (Schema) để AI hiểu ngữ cảnh.
-  const prompt = promptAI(question, schema);
+  const prompt = promptAI(question, schema, errMessage);
 
   // 4. Gửi yêu cầu và nhận phản hồi từ AI.
   const result = await model.generateContent(prompt);
