@@ -1,24 +1,50 @@
-// ==============================================================================
-// AUTH MODEL: THAO TÁC TRỰC TIẾP VỚI DATABASE HỆ THỐNG (BẢNG USERS)
-// ==============================================================================
 import pool from "../db/index.js";
 
 const AuthModel = {
-  /**
-   * Lấy thông tin người dùng để phục vụ quá trình đăng nhập.
-   * @param {string} email - Email người dùng gửi lên từ form đăng nhập.
-   * @returns {Array} - Trả về một mảng chứa thông tin user (nếu tìm thấy).
-   */
-  login: async (email) => {
-    // Sử dụng pool.query để thực thi câu lệnh SQL.
-    // Dấu "?" là Placeholder (tham số hóa) để chống tấn công SQL Injection.
-    // Dữ liệu [email] sẽ được thư viện mysql2 tự động xử lý an toàn trước khi đưa vào câu lệnh.
-    const [rows] = await pool.query("SELECT * FROM users WHERE email = ?", [
-      email,
+  // --- LIÊN QUAN TỚI USER ---
+  findUserByGoogleId: async (googleId) => {
+    const [rows] = await pool.query("SELECT * FROM users WHERE google_id = ?", [
+      googleId,
     ]);
+    return rows[0]; // Trả về user đầu tiên hoặc undefined
+  },
 
-    // Trả về kết quả thô cho Service xử lý tiếp (kiểm tra password, tạo token...).
-    return rows;
+  // Thêm vào auth.model.js
+  findUserById: async (id) => {
+    const [rows] = await pool.query("SELECT * FROM users WHERE id = ?", [id]);
+    return rows[0];
+  },
+
+  createUserGoogle: async (googleId, email) => {
+    const [result] = await pool.query(
+      "INSERT INTO users (google_id, email, role) VALUES (?, ?, 'user')",
+      [googleId, email],
+    );
+    return result.insertId; // Trả về ID của user vừa tạo
+  },
+
+  // --- LIÊN QUAN TỚI REFRESH TOKEN ---
+  saveRefreshToken: async (userId, token, expiresAt) => {
+    await pool.query(
+      "REPLACE INTO refresh_tokens (user_id, token, expires_at) VALUES (?, ?, ?)",
+      [userId, token, expiresAt],
+    );
+  },
+
+  findRefreshToken: async (token) => {
+    const [rows] = await pool.query(
+      "SELECT * FROM refresh_tokens WHERE token = ?",
+      [token],
+    );
+    return rows[0];
+  },
+
+  deleteRefreshTokenById: async (id) => {
+    await pool.query("DELETE FROM refresh_tokens WHERE id = ?", [id]);
+  },
+
+  deleteRefreshTokenByToken: async (token) => {
+    await pool.query("DELETE FROM refresh_tokens WHERE token = ?", [token]);
   },
 };
 

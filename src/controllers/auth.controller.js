@@ -1,39 +1,74 @@
-// AUTH CONTROLLER: Điều hướng yêu cầu Đăng nhập và Đăng ký.
 import AuthService from "../services/auth.service.js";
-import responseSuccess from "../utils/response.js";
+import responseSuccess from "../utils/response.js"; // Thay đường dẫn cho đúng với project của ông
 
 const AuthController = {
-  // 1. Xử lý Đăng nhập (Login)
-  login: async (req, res, next) => {
+  // 1. NGHIỆP VỤ ĐĂNG NHẬP GOOGLE
+  loginGoogle: async (req, res, next) => {
     try {
-      // Trích xuất Email và Password từ Body của Request.
-      // Ví dụ: { "email": "admin@gmail.com", "password": "123" }
-      const { email, password } = req.body;
+      const { idToken } = req.body;
 
-      // Gọi nghiệp vụ Login từ AuthService để kiểm tra tài khoản và tạo Token.
-      const result = await AuthService.login(email, password);
+      // 1. Gọi Service thực thi logic.
+      // Nếu có lỗi trong Service (vd: Token Google sai), Service sẽ ném lỗi và nhảy thẳng xuống catch.
+      const result = await AuthService.loginGoogle(idToken);
 
-      // Nếu thành công, trả về dữ liệu chuẩn cho Frontend (status: success, data: result).
-      responseSuccess(res, result, 200);
+      // 2. Set Cookie chứa Refresh Token
+      res.cookie("refreshToken", result.refreshToken, {
+        httpOnly: true,
+        secure: false,
+        sameSite: "Lax", // Dev thì Lax, Deploy thì Strict
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+      });
+
+      // 3. Tách Refresh Token ra, chỉ trả Access Token và User về cho FE
+      const dataPayload = {
+        accessToken: result.accessToken,
+        user: result.user,
+      };
+
+      // 4. Dùng Success Helper chuẩn của ông
+      return responseSuccess(res, dataPayload, 200);
     } catch (error) {
-      // Nếu có lỗi (Sai pass, không tìm thấy user...), đẩy lỗi sang Global Error Handler.
+      // Đẩy lỗi cho Global Error Handling Middleware xử lý và ghi log
       next(error);
     }
   },
 
-  // 2. Xử lý Đăng ký (Register)
-  register: async (req, res, next) => {
+  // 2. NGHIỆP VỤ XOAY VÒNG TOKEN (ROTATE RT)
+  refreshToken: async (req, res, next) => {
     try {
-      // Tiếp nhận thông tin đăng ký mới từ Client.
-      const { email, password } = req.body;
+      // 1. Đọc Cookie (Yêu cầu phải cài thư viện cookie-parser ở app.js)
+      const currentToken = req.cookies?.refreshToken;
 
-      // Gọi nghiệp vụ Register để lưu User mới vào Database hệ thống.
-      const result = await AuthService.register(email, password);
+      // Nếu không có cookie thì chủ động ném lỗi để Error Middleware bắt
+      if (!currentToken) {
+        const error = new Error("Không tìm thấy Refresh Token trong Cookie!");
+        error.statusCode = 401;
+        throw error;
+      }
 
-      // Trả về phản hồi thành công kèm thông tin User vừa tạo.
-      responseSuccess(res, result, 200);
+      // 2. Lấy Token mới và thông tin user từ Service
+      const result = await AuthService.refreshToken(currentToken);
+
+      // 3. Set lại Cookie bằng Refresh Token mới
+      res.cookie("refreshToken", result.newRefreshToken, {
+        httpOnly: true,
+        secure: false,
+        sameSite: "Lax",
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+      });
+
+      // 4. Dữ liệu trả về cho Frontend (Có cả user để khôi phục State)
+      const dataPayload = {
+        accessToken: result.newAccessToken,
+        user: result.user,
+      };
+
+      // 5. Dùng Success Helper chuẩn của ông
+      return responseSuccess(res, dataPayload, 200);
     } catch (error) {
-      // Chuyển tiếp lỗi (ví dụ: Email đã tồn tại) để Middleware xử lý.
+      // Bất kỳ lỗi nào (Hết hạn, sai chữ ký, DB lỗi) -> Xóa cookie bảo vệ người dùng
+      res.clearCookie("refreshToken");
+      // Đẩy lỗi ra cho Global Error Middleware
       next(error);
     }
   },

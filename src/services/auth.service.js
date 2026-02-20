@@ -1,62 +1,130 @@
-// AUTH SERVICE: Xử lý các nghiệp vụ xác thực người dùng.
-import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import { OAuth2Client } from "google-auth-library";
 import AuthModel from "../models/auth.model.js";
-import UserModel from "../models/user.model.js";
+
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 const AuthService = {
-  // 1. NGHIỆP VỤ ĐĂNG NHẬP
-  login: async (email, password) => {
-    // Tìm kiếm thông tin user trong Database thông qua Model
-    const result = await AuthModel.login(email);
-    const user = result[0];
-
-    // Kiểm tra tồn tại của User
-    if (!user) {
-      throw Object.assign(new Error("Email không tồn tại!"), {
-        statusCode: 404,
-      });
-    }
-
-    // Kiểm tra mật khẩu: So sánh mật khẩu người dùng nhập với bản băm (Hash) trong DB
-    const passwordMatch = await bcrypt.compare(password, user.password_hash);
-    if (!passwordMatch) {
-      throw Object.assign(new Error("Sai mật khẩu!"), { statusCode: 404 });
-    }
-
-    // Cấp "vé thông hành" (JWT): Chứa thông tin User ID, hết hạn sau 10 giờ
-    const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET, {
-      expiresIn: "10h",
-    });
-
-    return { token, id: user.id, email: user.email };
-  },
-
-  // 2. NGHIỆP VỤ ĐĂNG KÝ
-  register: async (email, password) => {
-    // Kiểm tra dữ liệu đầu vào (Validation cơ bản)
-    if (!email || !password) {
-      throw Object.assign(new Error("Thiếu dữ liệu bắt buộc"), {
+  // 1. NGHIỆP VỤ ĐĂNG NHẬP GOOGLE
+  loginGoogle: async (idToken) => {
+    if (!idToken) {
+      throw Object.assign(new Error("Thiếu Google ID Token!"), {
         statusCode: 400,
       });
     }
 
-    // Kiểm tra trùng lặp: Không cho phép đăng ký 2 tài khoản cùng email
-    const existEmail = await UserModel.findByEmail(email);
-    if (existEmail.length > 0) {
-      throw Object.assign(new Error("Email đã tồn tại"), { statusCode: 409 });
+    let ticket;
+    try {
+      // CHỈ bọc try-catch ở đây để "Dịch lỗi" của bên thứ 3 (Google)
+      ticket = await client.verifyIdToken({
+        idToken,
+        audience: process.env.GOOGLE_CLIENT_ID,
+      });
+    } catch (error) {
+      // Ném thẳng 401, không làm nhiễu logic bên dưới
+      throw Object.assign(
+        new Error("Token Google không hợp lệ hoặc đã hết hạn!"),
+        { statusCode: 401 },
+      );
     }
 
-    // Bảo mật mật khẩu: Băm mật khẩu bằng thuật toán Bcrypt (Salt rounds = 10)
-    // Tuyệt đối không lưu mật khẩu dạng văn bản thuần (plain text) vào DB.
-    const passwordHash = await bcrypt.hash(password, 10);
+    const { sub: googleId, email } = ticket.getPayload();
 
-    // Lưu User mới vào Database
-    const result = await UserModel.create(email, passwordHash);
+    // TỪ ĐÂY TRỞ XUỐNG: KHÔNG DÙNG TRY-CATCH.
+    // Nếu DB lỗi, nó sẽ văng thẳng lỗi SQL kèm Stack Trace ra Global Error Handler
+    let user = await AuthModel.findUserByGoogleId(googleId);
+    if (!user) {
+      const insertId = await AuthModel.createUserGoogle(googleId, email);
+      user = { id: insertId, google_id: googleId, email, role: "user" };
+    }
+
+    const accessToken = jwt.sign(
+      { id: user.id, role: user.role },
+      process.env.JWT_ACCESS_SECRET,
+      { expiresIn: "15m" },
+    );
+
+    const refreshToken = jwt.sign(
+      { id: user.id },
+      process.env.JWT_REFRESH_SECRET,
+      { expiresIn: "7d" },
+    );
+
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    await AuthModel.saveRefreshToken(user.id, refreshToken, expiresAt);
 
     return {
-      id: result.insertId,
-      email,
+      accessToken,
+      refreshToken,
+      user: { id: user.id, email: user.email, role: user.role },
+    };
+  },
+
+  // 2. NGHIỆP VỤ XOAY VÒNG TOKEN (ROTATE RT)
+  // 2. NGHIỆP VỤ XOAY VÒNG TOKEN (ROTATE RT)
+  refreshToken: async (currentToken) => {
+    if (!currentToken) {
+      throw Object.assign(new Error("Không tìm thấy Refresh Token!"), {
+        statusCode: 401,
+      });
+    }
+
+    let decoded;
+    try {
+      // Bọc try-catch cục bộ để bắt lỗi JWT (Hết hạn, sai chữ ký)
+      decoded = jwt.verify(currentToken, process.env.JWT_REFRESH_SECRET);
+    } catch (error) {
+      // NGHIỆP VỤ QUAN TRỌNG: Token hết hạn/sai thì phải dọn dẹp rác trong DB
+      await AuthModel.deleteRefreshTokenByToken(currentToken);
+      throw Object.assign(
+        new Error("Refresh Token không hợp lệ hoặc đã hết hạn!"),
+        { statusCode: 403 },
+      );
+    }
+
+    // Phần logic DB bên dưới tự do ném lỗi nguyên bản
+    const rtRecord = await AuthModel.findRefreshToken(currentToken);
+    if (!rtRecord) {
+      throw Object.assign(new Error("Token bất hợp pháp hoặc đã bị thu hồi!"), {
+        statusCode: 403,
+      });
+    }
+
+    await AuthModel.deleteRefreshTokenById(rtRecord.id);
+
+    // =========================================================
+    // THÊM MỚI Ở ĐÂY: Query lấy thông tin User thật từ DB
+    // =========================================================
+    const user = await AuthModel.findUserById(decoded.id);
+    if (!user) {
+      throw Object.assign(new Error("Không tìm thấy thông tin tài khoản!"), {
+        statusCode: 404,
+      });
+    }
+
+    // Sinh Access Token mới, lấy role chuẩn từ DB ném vào JWT
+    const newAccessToken = jwt.sign(
+      { id: user.id, role: user.role }, // Đã đổi decoded.role thành user.role an toàn tuyệt đối
+      process.env.JWT_ACCESS_SECRET,
+      { expiresIn: "15m" },
+    );
+    const newRefreshToken = jwt.sign(
+      { id: user.id },
+      process.env.JWT_REFRESH_SECRET,
+      { expiresIn: "7d" },
+    );
+
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    // Lưu ý: Nếu ông đã đổi thành REPLACE INTO như tôi chỉ ban nãy thì cứ dùng saveRefreshToken bình thường
+    await AuthModel.saveRefreshToken(user.id, newRefreshToken, expiresAt);
+
+    // =========================================================
+    // SỬA RETURN Ở ĐÂY: Đính kèm cục user trả về cho Controller
+    // =========================================================
+    return {
+      newAccessToken,
+      newRefreshToken,
+      user: { id: user.id, email: user.email, role: user.role },
     };
   },
 };

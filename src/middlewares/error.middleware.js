@@ -11,7 +11,7 @@ export default (err, req, res, next) => {
   // Dùng console.error (không phải console.err) để in lỗi ra màn hình Terminal của Dev.
   // Quan trọng: Phải in stack trace để biết lỗi nằm ở file nào, dòng số mấy.
   // Ví dụ: "[POST] /api/login - LỖI: ... tại auth.service.js:25"
-  console.error(`[${req.method}] ${req.url} - LỖI:`, {
+  console.error(`[${req.method}] ${req.url} - LỖI API:`, {
     message: err.message,
     stack: err.stack,
   });
