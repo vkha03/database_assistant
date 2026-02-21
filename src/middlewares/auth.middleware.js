@@ -7,6 +7,8 @@ const authMiddleware = (req, res, next) => {
     // Ví dụ dữ liệu nhận được: "Bearer eyJhbGciOiJIUzI1NiIsIn..."
     const authHeader = req.headers["authorization"];
 
+    console.log(authHeader);
+
     // 2. Validate: Kiểm tra sự tồn tại
     // Nếu không có Header -> Chặn ngay lập tức (Lỗi 401 Unauthorized).
     if (!authHeader) {
@@ -32,7 +34,7 @@ const authMiddleware = (req, res, next) => {
     // 4. Verify Token: Giải mã và Xác thực
     // Dùng Secret Key để kiểm tra xem Token có bị làm giả hoặc hết hạn không.
     // Payload là dữ liệu đã giải mã. Ví dụ: { id: 101, email: "dev@gmail.com", iat: 17000... }
-    const payload = jwt.verify(token, process.env.JWT_SECRET);
+    const payload = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
 
     // 5. Attach Context: Gắn thông tin User vào Request
     // Biến `req` được dùng chung cho cả vòng đời request.
@@ -46,7 +48,6 @@ const authMiddleware = (req, res, next) => {
   } catch (err) {
     // 7. Exception Handling: Xử lý ngoại lệ
     // Bắt các lỗi: Token hết hạn (TokenExpiredError) hoặc Token rác (JsonWebTokenError).
-    err.statusCode = 401;
     next(err);
   }
 };

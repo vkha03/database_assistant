@@ -39,21 +39,12 @@ const DBModel = {
     db_name,
     db_user,
     encryptedPassword,
-    schema_version,
   ) => {
     const [result] = await pool.query(
       `INSERT INTO user_databases 
-       (user_id, db_host, db_port, db_name, db_user, db_password_encrypted, schema_version) 
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [
-        user_id,
-        db_host,
-        db_port,
-        db_name,
-        db_user,
-        encryptedPassword,
-        schema_version || null,
-      ],
+       (user_id, db_host, db_port, db_name, db_user, db_password_encrypted) 
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [user_id, db_host, db_port, db_name, db_user, encryptedPassword],
     );
     return result;
   },

@@ -72,6 +72,29 @@ const AuthController = {
       next(error);
     }
   },
+
+  logout: async (req, res, next) => {
+    try {
+      const refreshToken = req.cookies?.refreshToken;
+
+      // 1. Nếu có token thì mới gọi Service xóa trong DB
+      if (refreshToken) {
+        await AuthService.logout(refreshToken);
+      }
+
+      // 2. LUÔN LUÔN xóa cookie ở trình duyệt (Dù có token hay không)
+      res.clearCookie("refreshToken", {
+        httpOnly: true,
+        secure: false, // Dev thì false
+        sameSite: "Lax",
+      });
+
+      // 3. Trả về thành công để FE chuyển hướng về trang Login
+      return responseSuccess(res, { message: "Đăng xuất thành công" }, 200);
+    } catch (err) {
+      next(err);
+    }
+  },
 };
 
 export default AuthController;

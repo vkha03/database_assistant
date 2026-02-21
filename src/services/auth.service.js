@@ -127,6 +127,12 @@ const AuthService = {
       user: { id: user.id, email: user.email, role: user.role },
     };
   },
+
+  logout: async (refreshToken) => {
+    // Cứ chọc thẳng lệnh DELETE. Có thì nó xóa (affectedRows = 1). Không có thì nó chả làm gì (affectedRows = 0).
+    // Miễn DB không sập (đứt cáp, sai tên bảng) thì cứ coi như xong nhiệm vụ!
+    await AuthModel.deleteRefreshTokenByToken(refreshToken);
+  },
 };
 
 export default AuthService;

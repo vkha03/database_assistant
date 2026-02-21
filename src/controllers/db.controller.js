@@ -37,7 +37,8 @@ const DBController = {
    */
   create: async (req, res, next) => {
     try {
-      const row = await DBService.create(req.body);
+      const userId = req.user.id;
+      const row = await DBService.create(userId, req.body);
       // HTTP 201: Created - Tạo mới thành công
       successResponse(res, row, 201);
     } catch (err) {

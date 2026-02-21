@@ -6,5 +6,6 @@ const router = Router();
 
 router.post("/google", AuthController.loginGoogle);
 router.post("/refresh", AuthController.refreshToken);
+router.get("/logout", AuthController.logout);
 
 export default router;

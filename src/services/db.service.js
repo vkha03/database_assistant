@@ -75,20 +75,12 @@ const DBService = {
   },
 
   // 3. TẠO MỚI CẤU HÌNH (CREATE)
-  create: async (data) => {
-    const {
-      user_id,
-      db_host,
-      db_port,
-      db_name,
-      db_user,
-      db_password,
-      schema_version,
-    } = data;
+  create: async (userId, data) => {
+    const { db_host, db_port, db_name, db_user, db_password } = data;
 
     // Kiểm tra dữ liệu bắt buộc (Server-side validation).
     if (
-      !user_id ||
+      !userId ||
       !db_host ||
       !db_port ||
       !db_name ||
@@ -104,23 +96,21 @@ const DBService = {
     const encryptedPassword = Crypto.encryptPassword(db_password);
 
     const result = await DBModel.create(
-      user_id,
+      userId,
       db_host,
       db_port,
       db_name,
       db_user,
       encryptedPassword,
-      schema_version,
     );
 
     return {
       id: result.insertId,
-      user_id,
+      userId,
       db_host,
       db_port,
       db_name,
       db_user,
-      schema_version,
     };
   },
 
