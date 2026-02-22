@@ -9,7 +9,7 @@ const DBModel = {
   // Trả về các thông tin cơ bản, loại bỏ mật khẩu để đảm bảo an toàn.
   findAll: async () => {
     const [rows] = await pool.query(
-      "SELECT id, user_id, db_host, db_port, db_name, db_user, schema_version, created_at, updated_at FROM user_databases",
+      "SELECT id, user_id, db_host, db_port, db_name, db_user, created_at, updated_at FROM user_databases",
     );
     return rows;
   },

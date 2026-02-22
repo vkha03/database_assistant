@@ -7,8 +7,6 @@ const authMiddleware = (req, res, next) => {
     // Ví dụ dữ liệu nhận được: "Bearer eyJhbGciOiJIUzI1NiIsIn..."
     const authHeader = req.headers["authorization"];
 
-    console.log(authHeader);
-
     // 2. Validate: Kiểm tra sự tồn tại
     // Nếu không có Header -> Chặn ngay lập tức (Lỗi 401 Unauthorized).
     if (!authHeader) {
