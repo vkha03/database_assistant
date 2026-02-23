@@ -50,7 +50,7 @@ app.use(
   cors({
     origin: "http://localhost:5173", // CHỈ ĐỊNH ĐÍCH DANH PORT CỦA FRONTEND (Không có dấu / ở cuối)
     credentials: true, // Chìa khóa vàng: BẮT BUỘC để cho phép gửi/nhận Cookie
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], // Các method được phép
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"], // Các method được phép
   }),
 );
 // Hai dòng dưới cực kỳ quan trọng: Giúp Server "đọc hiểu" dữ liệu Frontend gửi lên.

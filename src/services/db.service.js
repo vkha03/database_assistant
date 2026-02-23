@@ -14,7 +14,6 @@ const ALLOWED_FIELDS = [
   "db_name",
   "db_user",
   "db_password",
-  "schema_version",
 ];
 
 const DBService = {
