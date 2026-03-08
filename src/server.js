@@ -3,7 +3,7 @@ import express from "express";
 import morgan from "morgan";
 import cors from "cors";
 import cookieParser from "cookie-parser";
-import router from "./routes/index.js";
+import router from "./routes/index.route.js";
 import errorMiddleware from "./middlewares/error.middleware.js";
 
 const app = express();

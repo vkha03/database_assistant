@@ -1,5 +1,5 @@
 import QueryService from "../services/query.service.js";
-import successResponse from "../utils/response.js";
+import successResponse from "../utils/response.util.js";
 
 const QueryController = {
   query: async (req, res, next) => {

@@ -1,5 +1,6 @@
+import AppError from "../utils/error.util.js";
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import promptAI from "../utils/prompt.js";
+import promptAI from "../utils/prompt.util.js";
 
 const AIHandle = async (question, schema, errMessage) => {
   const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
@@ -15,9 +16,9 @@ const AIHandle = async (question, schema, errMessage) => {
   const isSafe = /^\s*(SELECT|WITH)\b/i.test(generatedSQL);
 
   if (!isSafe) {
-    throw new Error(
+    throw new AppError(
       `Truy vấn không hợp lệ hoặc có nguy cơ bảo mật: ${generatedSQL.substring(0, 100)}...`,
-      { statusCode: 403 },
+      403,
     );
   }
 

@@ -1,5 +1,5 @@
 import AuthService from "../services/auth.service.js";
-import responseSuccess from "../utils/response.js";
+import responseSuccess from "../utils/response.util.js";
 
 const AuthController = {
   loginGoogle: async (req, res, next) => {
@@ -23,12 +23,6 @@ const AuthController = {
 
   refreshToken: async (req, res, next) => {
     const currentToken = req.cookies?.refreshToken;
-    if (!currentToken) {
-      const error = new Error("Không tìm thấy Refresh Token trong Cookie!");
-      error.statusCode = 401;
-      throw error;
-    }
-
     const result = await AuthService.refreshToken(currentToken);
 
     res.cookie("refreshToken", result.newRefreshToken, {

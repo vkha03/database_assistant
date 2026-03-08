@@ -1,4 +1,4 @@
-import pool from "../db/index.js";
+import pool from "../db/index.db.js";
 
 const AuthModel = {
   // --- LIÊN QUAN TỚI USER ---

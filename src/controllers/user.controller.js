@@ -1,5 +1,5 @@
 import UserService from "../services/user.service.js";
-import successResponse from "../utils/response.js";
+import successResponse from "../utils/response.util.js";
 
 const UserController = {
   findAll: async (req, res, next) => {

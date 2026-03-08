@@ -1,5 +1,5 @@
 import DBService from "../services/db.service.js";
-import successResponse from "../utils/response.js";
+import successResponse from "../utils/response.util.js";
 
 const DBController = {
   findAll: async (req, res, next) => {

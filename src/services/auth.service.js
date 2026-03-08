@@ -1,3 +1,4 @@
+import AppError from "../utils/error.util.js";
 import JwtUtils from "../utils/jwt.js";
 import { OAuth2Client } from "google-auth-library";
 import AuthModel from "../models/auth.model.js";
@@ -13,10 +14,7 @@ const AuthService = {
         audience: process.env.GOOGLE_CLIENT_ID,
       });
     } catch (error) {
-      throw Object.assign(
-        new Error("Token Google không hợp lệ hoặc đã hết hạn!"),
-        { statusCode: 401 },
-      );
+      throw new AppError("Token Google không hợp lệ hoặc đã hết hạn!", 401);
     }
 
     const { sub: googleId, email } = ticket.getPayload();
@@ -47,26 +45,19 @@ const AuthService = {
       decoded = JwtUtils.verifyRefreshToken(currentToken);
     } catch (error) {
       await AuthModel.deleteRefreshTokenByToken(currentToken);
-      throw Object.assign(
-        new Error("Refresh Token không hợp lệ hoặc đã hết hạn!"),
-        { statusCode: 403 },
-      );
+      throw new AppError("Refresh Token không hợp lệ hoặc đã hết hạn!", 401);
     }
 
     const rtRecord = await AuthModel.findRefreshToken(currentToken);
     if (!rtRecord) {
-      throw Object.assign(new Error("Token bất hợp pháp hoặc đã bị thu hồi!"), {
-        statusCode: 403,
-      });
+      throw new AppError("Token bất hợp pháp hoặc đã bị thu hồi!", 401);
     }
 
     await AuthModel.deleteRefreshTokenById(rtRecord.id);
 
     const user = await AuthModel.findUserById(decoded.id);
     if (!user) {
-      throw Object.assign(new Error("Không tìm thấy thông tin tài khoản!"), {
-        statusCode: 404,
-      });
+      throw new AppError("Không tìm thấy thông tin tài khoản!", 404);
     }
 
     const newAccessToken = JwtUtils.generateAccessToken(user);

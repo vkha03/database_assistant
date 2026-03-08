@@ -1,6 +1,7 @@
+import AppError from "../utils/error.util.js";
 import mysql from "mysql2/promise";
-import Crypto from "../utils/crypto.js";
-import normallizeSchema from "../utils/normallizeSchema.js";
+import Crypto from "../utils/crypto.util.js";
+import normallizeSchema from "../utils/normallize.util.js";
 import DBModel from "../models/db.model.js";
 
 const DBService = {
@@ -23,13 +24,9 @@ const DBService = {
 
       return { connection, dbName: dbInfo.db_name };
     } catch (err) {
-      throw Object.assign(
-        new Error(
-          `Sai cấu hình database hoặc hệ thống đang lỗi, vui lòng thử lại!: ${err}`,
-        ),
-        {
-          statusCode: 404,
-        },
+      throw new AppError(
+        `Sai cấu hình database hoặc hệ thống đang lỗi, vui lòng thử lại!: ${err}`,
+        404,
       );
     }
   },
@@ -38,19 +35,14 @@ const DBService = {
 
   findById: async (id) => {
     const data = await DBModel.findById(id);
-    if (!data)
-      throw Object.assign(new Error("Không tìm thấy kết nối DB"), {
-        statusCode: 404,
-      });
+    if (!data) throw new AppError("Không tìm thấy kết nối DB", 404);
     return data;
   },
 
   findByActive: async (userId) => {
     const data = await DBModel.findByActive(userId);
-    if (!data)
-      throw Object.assign(new Error("Không tìm thấy kết nối DB"), {
-        statusCode: 404,
-      });
+    if (!data) throw new AppError("Không tìm thấy kết nối DB", 404);
+
     return data;
   },
 
@@ -83,9 +75,7 @@ const DBService = {
     const result = await DBModel.update(id, filtered);
 
     if (!result || result.affectedRows === 0) {
-      throw Object.assign(new Error("Không tìm thấy kết nối DB để cập nhật"), {
-        statusCode: 404,
-      });
+      throw new AppError("Không tìm thấy kết nối DB để cập nhật", 404);
     }
 
     return true;
@@ -94,9 +84,8 @@ const DBService = {
   delete: async (id) => {
     const result = await DBModel.delete(id);
     if (result.affectedRows === 0)
-      throw Object.assign(new Error("Không tìm thấy kết nối DB"), {
-        statusCode: 404,
-      });
+      throw new AppError("Không tìm thấy kết nối DB", 404);
+
     return true;
   },
 
@@ -107,11 +96,7 @@ const DBService = {
       await connection.execute("SELECT 1");
       return true;
     } catch (err) {
-      console.error("ERROR:", err.message);
-      throw Object.assign(
-        new Error("Không thể kết nối tới database khách hàng"),
-        { statusCode: 400 },
-      );
+      throw new AppError("Không thể kết nối tới database khách hàng", 400);
     } finally {
       await connection.end();
     }
@@ -124,10 +109,7 @@ const DBService = {
       const result = await DBModel.getSchema(connection, dbName);
       return normallizeSchema(result);
     } catch (err) {
-      console.error("ERROR:", err.message);
-      throw Object.assign(new Error("Không thể lấy được cấu trúc database"), {
-        statusCode: 400,
-      });
+      throw new AppError("Không thể lấy được cấu trúc database", 400);
     } finally {
       await connection.end();
     }
@@ -140,9 +122,7 @@ const DBService = {
       await DBModel.updateSchema(newSchema, userId);
       return newSchema;
     } catch (err) {
-      throw Object.assign(new Error("Không thể cập nhật cấu trúc database"), {
-        statusCode: 500,
-      });
+      throw new AppError("Không thể cập nhật cấu trúc database", 500);
     }
   },
 
@@ -150,9 +130,7 @@ const DBService = {
     await DBModel.unActive(userId);
     const active = await DBModel.active(userId, id);
     if (active.affectedRows === 0)
-      throw Object.assign(new Error("Không tìm thấy kết nối DB"), {
-        statusCode: 404,
-      });
+      throw new AppError("Không tìm thấy kết nối DB", 404);
 
     return true;
   },

@@ -1,6 +1,7 @@
+import AppError from "../utils/error.util.js";
 import DBService from "./db.service.js";
 import getPool from "../db/user.db.js";
-import Crypto from "../utils/crypto.js";
+import Crypto from "../utils/crypto.util.js";
 import AIHandle from "./ai.service.js";
 
 const QueryService = {
@@ -54,9 +55,11 @@ const QueryService = {
       }
 
       const statusCode = error.statusCode === 403 ? 403 : "";
-      throw Object.assign(
-        new Error(`Không thể xử lý câu hỏi lúc này: ${error.message}`),
-        { SQL, statusCode },
+
+      throw new AppError(
+        `Không thể xử lý câu hỏi lúc này: ${error.message}`,
+        statusCode,
+        SQL,
       );
     }
   },

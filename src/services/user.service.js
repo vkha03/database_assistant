@@ -1,3 +1,4 @@
+import AppError from "../utils/error.util.js";
 import UserModel from "../models/user.model.js";
 
 const UserService = {
@@ -9,9 +10,7 @@ const UserService = {
     const rows = await UserModel.findById(id);
 
     if (!rows || rows.length === 0) {
-      throw Object.assign(new Error("Không tìm thấy người dùng"), {
-        statusCode: 404,
-      });
+      throw new AppError("Không tìm thấy người dùng", 404);
     }
 
     return rows[0];
@@ -21,9 +20,7 @@ const UserService = {
     const result = await UserModel.delete(id);
 
     if (result.affectedRows === 0) {
-      throw Object.assign(new Error("Không tìm thấy người dùng để xóa"), {
-        statusCode: 404,
-      });
+      throw new AppError("Không tìm thấy người dùng để xóa", 404);
     }
 
     return true;
@@ -31,7 +28,11 @@ const UserService = {
 
   findByEmail: async (email) => {
     const rows = await UserModel.findByEmail(email);
-    return rows && rows.length > 0 ? rows[0] : null;
+    if (!rows || rows.length === 0) {
+      throw new AppError("Không tìm thấy người dùng", 404);
+    }
+
+    return rows[0];
   },
 };
 

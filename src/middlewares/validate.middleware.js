@@ -1,3 +1,5 @@
+import AppError from "../utils/error.util.js";
+
 const validate =
   (schema, proprety = "body") =>
   (req, res, next) => {
@@ -8,11 +10,7 @@ const validate =
         .map((detail) => detail.message)
         .join(", ");
 
-      return next(
-        Object.assign(new Error("Lỗi input: ", errorMessage), {
-          statusCode: 400,
-        }),
-      );
+      return next(new AppError(`Lỗi input:  ${errorMessage}`, 400));
     }
 
     next();

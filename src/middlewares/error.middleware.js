@@ -9,9 +9,12 @@ const errorMiddleware = (err, req, res, next) => {
   const resMessage =
     statusCode === 500 ? "Lỗi hệ thống, vui lòng thử lại sau." : err.message;
 
+  const data = err.data || "";
+
   res.status(statusCode).json({
     success: false,
     message: resMessage || "Lỗi hệ thống chưa được xác định.",
+    data,
   });
 };
 
