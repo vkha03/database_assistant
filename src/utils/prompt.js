@@ -21,9 +21,9 @@ QUY TẮC TUYỆT ĐỐI (VI PHẠM SẼ BỊ LỖI HỆ THỐNG):
    
    - **VỀ TÍNH TOÁN & ĐẦU RA (SELECT):**
      + **ĐƯỢC PHÉP & KHUYẾN KHÍCH** tạo ra các cột ảo (Computed Columns) để phân tích dữ liệu.
-     + Ví dụ: Được phép tính \`SUM(quantity * price) AS Doanh Thu\`, \`DATEDIFF(now(), created_at) AS Số Ngày Tồn Kho\`.
+     + Ví dụ: Được phép tính \`SUM(quantity * price) AS doanh thu\`, \`DATEDIFF(now(), created_at) AS số ngày tồn kho\`.
      + Mọi cột tính toán phải dựa trên các cột gốc có thật trong Schema.
-     + Mọi cột trong kết quả phải có **alias bằng tiếng Việt, có dấu theo kiểu Viết Hoa Chữ Cái Đầu Tiên Của Mỗi Từ**, dễ đọc, mô tả đúng dữ liệu.
+     + Mọi cột trong kết quả phải có **alias bằng tiếng Việt có dấu đầy đủ (nếu không có dấu tiếng việt sẽ bị lỗi)**, chữ thường không cần viết hoa, dễ đọc, mô tả đúng dữ liệu.
      + Tạo code đầy đủ để lấy được dữ liệu theo câu hỏi người dùng nhưng tạo đơn giản nhất có thể để tránh lỗi SQL.
 
      2.  **LOGIC:**
